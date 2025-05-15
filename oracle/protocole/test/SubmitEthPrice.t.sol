@@ -1,29 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test} from "forge-std/Test.sol";
-import {EthPriceOracle} from "../src/contracts/EthPriceOracle.sol";
+import {BaseTest} from "./helpers/Base.sol";
 import {IEthPriceOracle} from "../src/interfaces/IEthPriceOracle.sol";
 
-contract SubmitEthPriceTest is Test {
-    address public user1;
-    address public user2;
-
-    uint256 public ethSubmission1;
-    uint256 public ethSubmission2;
-    uint256 public ethSubmission3;
-
-    EthPriceOracle public oracle;
-
-    function setUp() public {
-        user1 = address(1);
-        user2 = address(2);
-
-        ethSubmission1 = 1000;
-        ethSubmission2 = 1001;
-        ethSubmission3 = 999;
-
-        oracle = new EthPriceOracle();
+contract SubmitEthPriceTest is BaseTest {
+    function setUp() public override {
+        super.setUp();
     }
 
     function test_submitEthPrice_succeeds() public {
@@ -61,15 +44,16 @@ contract SubmitEthPriceTest is Test {
 
     function test_submitEthPrice_emitsEthPriceSubmitted() public {
         vm.expectEmit();
-        emit IEthPriceOracle.EthPriceSubmitted(address(this), ethSubmission1);
+        emit IEthPriceOracle.EthPriceSubmitted(user1, ethSubmission1);
 
+        vm.prank(user1);
         oracle.submitEthPrice(ethSubmission1);
     }
 
-    function _getEthPriceSubmissionByIndex(uint256 index) internal view returns (uint256 ethPriceSubmission) {
-        bytes32 lengthSlot = keccak256(abi.encode(3));
-        bytes32 indexSlot = vm.load(address(oracle), bytes32(uint256(lengthSlot) + index));
+    function test_submitEthPrice_failsWhenNotProvider() public {
+        vm.expectRevert();
 
-        ethPriceSubmission = uint256(indexSlot);
+        vm.prank(user3);
+        oracle.submitEthPrice(ethSubmission1);
     }
 }

@@ -1,39 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test} from "forge-std/Test.sol";
-import {EthPriceOracle} from "../src/contracts/EthPriceOracle.sol";
+import {BaseTest} from "./helpers/Base.sol";
 import {IEthPriceOracle} from "../src/interfaces/IEthPriceOracle.sol";
 
-contract UpdateEthPriceDataTest is Test {
-    address public user1;
-    address public user2;
-
-    uint256 public ethSubmission1;
-    uint256 public ethSubmission2;
-    uint256 public ethSubmission3;
-
-    EthPriceOracle public oracle;
-
-    function setUp() public {
-        user1 = address(1);
-        user2 = address(2);
-
-        ethSubmission1 = 1000;
-        ethSubmission2 = 1001;
-        ethSubmission3 = 999;
-
-        oracle = new EthPriceOracle();
+contract UpdateEthPriceDataTest is BaseTest {
+    function setUp() public override {
+        super.setUp();
     }
 
     function test_updateEthPriceData_succeeds() public {
-        vm.prank(user1);
-        oracle.submitEthPrice(ethSubmission1);
-
-        vm.prank(user2);
-        oracle.submitEthPrice(ethSubmission2);
-
-        oracle.updateEthPriceData();
+        _setEthPriceSubmissionsLengthToMaxSubmissions();
 
         (uint256 ethPrice, uint256 lastUpdate) = oracle.getEthPriceData();
 
@@ -43,28 +20,12 @@ contract UpdateEthPriceDataTest is Test {
     }
 
     function test_updateEthPriceData_emitsEthPriceUpdated() public {
-        vm.prank(user1);
-        oracle.submitEthPrice(ethSubmission1);
-
-        vm.prank(user2);
-        oracle.submitEthPrice(ethSubmission2);
+        _setEthPriceSubmissionsLengthToMaxSubmissionsMinusOne();
 
         vm.expectEmit();
         emit IEthPriceOracle.EthPriceUpdated(_getEthPriceExpected(), block.timestamp);
 
-        oracle.updateEthPriceData();
-    }
-
-    function _getEthPriceExpected() internal view returns (uint256) {
-        uint256 precision = 10 ** 18;
-        uint256 precisionDenominator = 10 ** 16;
-
-        return ((ethSubmission1 + ethSubmission2) * precision / 2) / precisionDenominator;
-    }
-
-    function _getEthPriceSubmissionsLength() internal view returns (uint256 length) {
-        bytes32 lengthSlot = keccak256(abi.encode(3));
-
-        return uint256(vm.load(address(oracle), lengthSlot));
+        vm.prank(user2);
+        oracle.submitEthPrice(ethSubmission2);
     }
 }
